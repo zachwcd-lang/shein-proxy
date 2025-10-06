@@ -1,0 +1,31 @@
+export default async function handler(req, res) {
+  // Get the IP that will be seen by external services
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const realIp = req.headers['x-real-ip'];
+  const ip = req.socket.remoteAddress;
+  
+  // Make a request to an external service to see our outbound IP
+  try {
+    const ipCheckResponse = await fetch('https://api.ipify.org?format=json');
+    const ipData = await ipCheckResponse.json();
+    
+    return res.status(200).json({
+      outboundIPv4: ipData.ip,
+      requestHeaders: {
+        'x-forwarded-for': forwardedFor,
+        'x-real-ip': realIp,
+        socketAddress: ip
+      },
+      message: "Whitelist the 'outboundIPv4' address in SHEIN's developer portal"
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: 'Could not determine IP',
+      requestHeaders: {
+        'x-forwarded-for': forwardedFor,
+        'x-real-ip': realIp,
+        socketAddress: ip
+      }
+    });
+  }
+}
